@@ -1,3 +1,7 @@
+import logging
+
+logger = logging.getLogger(__name__)
+
 class Event:
     """
     Event class that can be used to signal between objects when an object changes state. Each event maintains a list of
@@ -16,6 +20,7 @@ class Event:
 
     def __init__(self, owner):
         """
+        Constructor
 
         :param owner:
         :return:
@@ -24,12 +29,12 @@ class Event:
         self.owner = owner
 
     def add_sys_handler(self, handler, **kwargs):
-        '''
+        """
         The system wants to handle this event before user code. We call this event handler first. It is added to the front
         of the handler list.
 
         :return:
-        '''
+        """
         self.__assert_no_duplicate_handler(handler)
         self.handlers.insert(0, (handler, kwargs))
         return self
@@ -116,3 +121,31 @@ class Event:
     __isub__ = remove_handler
     __call__ = fire
     __len__ = get_handler_count
+
+# Sample usage of the Event class.
+if __name__ == '__main__':
+
+    class Trade(object):
+        def __init__(self):
+            self.total_qty = 0
+            self.fill_event = Event(self)
+
+        def add_fill(self, q):
+            self.total_qty += q
+            self.fill_event.fire(fill_qty=q)
+
+    def handle_fill(trade, fill_qty, notes=''):
+        print('Saw fill on trade of {} for a total of {}. {}'.format(fill_qty, trade.total_qty, notes))
+
+    # An example of an event firing
+    simple_trade = Trade()
+    simple_trade.fill_event += handle_fill
+
+    simple_trade.add_fill(100)
+    simple_trade.add_fill(100)
+
+    t_with_notes = Trade()
+    t_with_notes.fill_event.add_handler(handle_fill, notes='A good trade.')
+
+    t_with_notes.add_fill(1000)
+    t_with_notes.add_fill(2000)
